@@ -8,10 +8,20 @@ from torch import optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import data_preprocess
+import numpy as np
 
 from data_preprocess import sample_rate
 from model import Generator, Discriminator
 from utils import AudioDataset, emphasis
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Audio Enhancement')
@@ -21,6 +31,40 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     BATCH_SIZE = opt.batch_size
     NUM_EPOCHS = opt.num_epochs
+    
+    
+    
+    
+    # loss fuction to calculate the mdct mdct_rmse
+    def stft_rmse_loss(clean_batch, lossy_batch, n_fft=2048, hop_length=512):
+      
+        
+        assert clean_batch.shape == lossy_batch.shape, "Clean and lossy batches must have the same shape"
+        
+        batch_size, _, signal_length = clean_batch.shape
+        total_loss = 0.0
+        
+        # Compute STFT and RMSE loss for each signal in the batch
+        for i in range(BATCH_SIZE):
+            output1 = clean_batch.cpu().detach().numpy()  # Extract clean audio signal
+            output2 = lossy_batch.cpu().detach().numpy()  # Extract clean audio signal
+            # lossy_audio = lossy_batch[i, 0, :]  # Extract lossy audio signal
+            
+            # Compute STFT for clean and lossy signals
+            clean_mdct = data_preprocess.mdct(output1[i][0])
+            lossy_mdct = data_preprocess.mdct(output2[i][0])
+            
+            # Compute magnitude spectrograms and RMSE loss
+            clean_mag = np.abs(clean_mdct)
+            lossy_mag = np.abs(lossy_mdct)
+            rmse = np.sqrt(np.mean((clean_mag - lossy_mag)**2))
+            
+            total_loss += rmse  # Accumulate RMSE loss
+        
+        mean_loss = total_loss / batch_size  # Compute mean RMSE loss across the batch
+        return mean_loss
+    
+    
 
     # load data
     print('loading data...')
@@ -48,6 +92,9 @@ if __name__ == '__main__':
     for epoch in range(NUM_EPOCHS):
         train_bar = tqdm(train_data_loader)
         for train_batch, train_clean, train_noisy in train_bar:
+            
+            # ---------------------cnvrt signals mdct
+            
 
             # latent vector - normal distribution
             z = nn.init.normal(torch.Tensor(train_batch.size(0), 1024, 8))
@@ -66,32 +113,57 @@ if __name__ == '__main__':
 
             # TRAIN D to recognize generated audio as noisy
             generated_outputs = generator(train_noisy, z)
+            # generated out*noisy ---------------- to be done
+            # gen_mdct = data_preprocess.mdct(generated_outputs)
             outputs = discriminator(torch.cat((generated_outputs, train_noisy), dim=1), ref_batch)
             noisy_loss = torch.mean(outputs ** 2)  # L2 loss - we want them all to be 0
             noisy_loss.backward()
 
-            # d_loss = clean_loss + noisy_loss
+            d_loss = clean_loss + noisy_loss
+            # d_loss.backward()
             d_optimizer.step()  # update parameters
 
             # TRAIN G so that D recognizes G(z) as real
             generator.zero_grad()
+            output1 = train_noisy.cpu().detach().numpy()
             generated_outputs = generator(train_noisy, z)
+            # gen_mdct = data_preprocess.mdct(generated_outputs)
             gen_noise_pair = torch.cat((generated_outputs, train_noisy), dim=1)
             outputs = discriminator(gen_noise_pair, ref_batch)
+            # output1 = outputs.cpu().detach().numpy()
+            # gen_mdct = data_preprocess.mdct(output1)
+            # print(outputs)
 
             g_loss_ = 0.5 * torch.mean((outputs - 1.0) ** 2)
             # L1 loss between generated output and clean sample
-            l1_dist = torch.abs(torch.add(generated_outputs, torch.neg(train_clean)))
-            g_cond_loss = 100 * torch.mean(l1_dist)  # conditional loss
-            g_loss = g_loss_ + g_cond_loss
+            
+            
+            
+            
+            mdct_rmse = stft_rmse_loss(generated_outputs, train_clean)
+
+            # Now mdct_rmse is already a float value representing the loss
+            # No need to convert it back to a torch tensor
+            g_loss = torch.tensor(mdct_rmse, dtype=torch.float64, requires_grad=True)
+            g_loss_ = torch.tensor(1.0, dtype=torch.float64, requires_grad=True)
+
+            
+            # mdct_rmse = stft_rmse_loss(generated_outputs,train_clean)
+            # l1_dist = torch.abs(torch.add(generated_outputs, torch.neg(train_clean)))
+            # g_cond_loss = 100 * torch.mean(l1_dist)  # conditional loss
+            # g_loss = g_loss_ + g_cond_loss
+            # mdct_rmse = torch.from_numpy(np.array(mdct_rmse)).to(torch.float64)
+            
+            # g_loss = mdct_rmse
+            # g_loss_ = torch.tensor(1.0, requires_grad=False)
 
             # backprop + optimize
             g_loss.backward()
             g_optimizer.step()
 
             train_bar.set_description(
-                'Epoch {}: d_clean_loss {:.4f}, d_noisy_loss {:.4f}, g_loss {:.4f}, g_conditional_loss {:.4f}'
-                    .format(epoch + 1, clean_loss.data[0], noisy_loss.data[0], g_loss.data[0], g_cond_loss.data[0]))
+                'Epoch {}: d_clean_loss {:.4f}, d_noisy_loss {:.4f}, g_loss {:.4f}, g_conditional_loss '
+                    .format(epoch + 1, clean_loss, noisy_loss, g_loss))
 
         # TEST model
         test_bar = tqdm(test_data_loader, desc='Test model and save generated audios')

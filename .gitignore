@@ -1,0 +1,17 @@
+
+data/*
+!data/.gitkeep
+
+results/*
+!results/.gitkeep
+
+epochs/*
+!epochs/.gitkeep
+
+__pycache__
+New folder
+Include
+Lib
+Scripts
+share
+enhanced_sample.wav

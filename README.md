@@ -1,47 +1,70 @@
-# SEGAN
-A PyTorch implementation of SEGAN based on INTERSPEECH 2017 paper [SEGAN: Speech Enhancement Generative Adversarial Network](https://arxiv.org/abs/1703.09452).
+# Audio Enhancement using GAN and Spectral Noise
+
+## Overview
+
+This repository contains code for audio enhancement using a Generative Adversarial Network (GAN) and spectral noise. The `codec` folder contains the encoder and decoder required to convert clean WAV audio files to audio that contains spectral noise. The rest of the code implements a GAN model that takes MDCT coefficients of audio as input and generates a mask. This mask, when applied to the audio, enhances its quality.
+
+## Contents
+
+- **codec/**
+  - Contains the encoder and decoder modules.
+- **gan/**
+  - Implements the GAN model for audio enhancement.
+- **data/**
+  - Placeholder for audio datasets.
+- **scripts/**
+  - Utility scripts for data processing and training.
+- **README.md**
+  - This file providing an overview of the project.
 
 ## Requirements
-* [Anaconda](https://www.anaconda.com/download/)
-* PyTorch
-```
-conda install pytorch torchvision -c pytorch
-```
-* librosa
-```
-pip install librosa
-```
 
-## Datasets
-The clear and noisy speech datasets are downloaded from [DataShare](https://datashare.is.ed.ac.uk/handle/10283/2791).
-Download the `56kHZ` train datasets and test datasets, then extract them into `data` directory.
+- Python 3.x
+- PyTorch
+- NumPy
+- SciPy
+- Librosa
+- matplotlib
+- tqdm
 
-If you want using other datasets, you should change the path of data defined on `data_preprocess.py`.
+<!-- You can install the required Python packages using the following command:
+```bash
+pip install -r requirements.txt
+``` -->
 
 ## Usage
-### Data Pre-process
-```
-python data_preprocess.py
-```
-The pre-processed datas are on `data/serialized_train_data` and `data/serialized_test_data`.
 
-### Train Model and Test
-```
-python main.py ----batch_size 128 --num_epochs 300
-optional arguments:
---batch_size             train batch size [default value is 50]
---num_epochs             train epochs number [default value is 86]
-```
-The test results are on `results`.
+1. **Data Preparation:**
+   - Place your audio datasets in the `data/` directory.
+   - Use the provided scripts in the `scripts/` directory for data preprocessing if needed.
 
-### Test Audio
-```
-python test_audio.py ----file_name p232_160.wav --epoch_name generator-80.pkl
-optional arguments:
---file_name              audio file name
---epoch_name             generator epoch name
-```
-The generated enhanced audio is on the same directory of input audio.
+2. **Training the GAN:**
+   - Run the training script located in the `gan/` directory to train the GAN model.
+   ```bash
+   cd gan/
+   python main.py --batch_size 32 --epochs 300
+   ```
 
-## Results
-The example results and the pre-train Generator weight can be downloaded from [BaiduYun](https://pan.baidu.com/s/1DrccLSyc9vPYsYambWkwPg)(access code:tzdd). 
+3. **Audio Enhancement:**
+   - After training, use the trained model to enhance audio by applying the generated mask to the MDCT coefficients.
+
+4. **Codec Usage:**
+   - Utilize the encoder and decoder modules in the `codec/` folder to convert clean WAV audio files to include spectral noise.
+
+## References
+
+Include any references or citations to papers, articles, or libraries that you have used for this project.
+
+## License
+
+Specify the license under which your project is distributed. For example:
+```
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+```
+
+## Contributors
+
+- [Midhuhn Nirmal](https://github.com/MidhunNirmal)
+- [Avinash K B](https://github.com/avinash-panikkan)
+
+Feel free to add more sections or details based on your project's specific requirements and structure. Good luck with your audio enhancement project! 🎶✨
