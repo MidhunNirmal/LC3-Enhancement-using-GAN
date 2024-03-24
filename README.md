@@ -1,15 +1,13 @@
-# Audio Enhancement using GAN and Spectral Noise
+# LC3 coded Audio Enhancement using GAN 
 
 ## Overview
 
-This repository contains code for audio enhancement using a Generative Adversarial Network (GAN) and spectral noise. The `codec` folder contains the encoder and decoder required to convert clean WAV audio files to audio that contains spectral noise. The rest of the code implements a GAN model that takes MDCT coefficients of audio as input and generates a mask. This mask, when applied to the audio, enhances its quality.
+This repository contains code for audio enhancement using a **Generative Adversarial Network (GAN)**. The _codec_ folder contains the encoder and decoder required to convert clean WAV audio files to audio that contains spectral noise. The rest of the code implements a GAN model that takes MDCT coefficients of audio as input and generates a mask. This mask, when applied to the audio, enhances its quality.
 
 ## Contents
 
 - **codec/**
   - Contains the encoder and decoder modules.
-- **gan/**
-  - Implements the GAN model for audio enhancement.
 - **data/**
   - Placeholder for audio datasets.
 - **scripts/**
@@ -19,7 +17,7 @@ This repository contains code for audio enhancement using a Generative Adversari
 
 ## Requirements
 
-- Python 3.x
+- Python 
 - PyTorch
 - NumPy
 - SciPy
@@ -39,9 +37,10 @@ pip install -r requirements.txt
    - Use the provided scripts in the `scripts/` directory for data preprocessing if needed.
 
 2. **Training the GAN:**
-   - Run the training script located in the `gan/` directory to train the GAN model.
+   - Run the training script to train the GAN model in `main.py`
+
+
    ```bash
-   cd gan/
    python main.py --batch_size 32 --epochs 300
    ```
 
@@ -53,18 +52,32 @@ pip install -r requirements.txt
 
 ## References
 
-Include any references or citations to papers, articles, or libraries that you have used for this project.
+- LC3 Codec using Rust ([ninjasource](https://github.com/ninjasource/lc3-codec))
+- Speech Enhancement GAN ([leftthomas](https://github.com/leftthomas/SEGAN))
+- MDCT & Inverse MDCT ([dhroth](https://github.com/dhroth/pytorch-mdct)) 
 
 ## License
-
-Specify the license under which your project is distributed. For example:
 ```
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+Copyright 2024 Midhun Nirmal, Avinash K B, Diljith P A, Jithu Johan Jose
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ```
 
 ## Contributors
 
 - [Midhuhn Nirmal](https://github.com/MidhunNirmal)
 - [Avinash K B](https://github.com/avinash-panikkan)
-
-Feel free to add more sections or details based on your project's specific requirements and structure. Good luck with your audio enhancement project! 🎶✨
+- [Diljith P A](https://github.com/dilji)
+- [Jithu Johan Jose](https://github.com/RoyalewidCheese)
