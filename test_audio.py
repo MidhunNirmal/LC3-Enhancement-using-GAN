@@ -7,6 +7,10 @@ import torch.nn as nn
 from scipy.io import wavfile
 from torch.autograd import Variable
 from tqdm import tqdm
+import data_preprocess
+
+import librosa
+
 
 from data_preprocess import slice_signal, window_size, sample_rate
 from model import Generator
@@ -34,12 +38,23 @@ if __name__ == '__main__':
         if torch.cuda.is_available():
             noisy_slice, z = noisy_slice.cuda(), z.cuda()
         noisy_slice, z = Variable(noisy_slice), Variable(z)
-        generated_speech = generator(noisy_slice, z).data.cpu().numpy()
-        generated_speech = emphasis(generated_speech, emph_coeff=0.95, pre=False)
+        noisy_slice1= data_preprocess.mdctconvert(noisy_slice,50).cuda()
+        generated_speech = generator(noisy_slice1).data.cpu().numpy()
+        out = noisy_slice.data.cpu().numpy()* generated_speech
+        generated_speech = emphasis(out, emph_coeff=0.95, pre=False)
         generated_speech = generated_speech.reshape(-1)
         enhanced_speech.append(generated_speech)
 
     enhanced_speech = np.array(enhanced_speech).reshape(1, -1)
+    
+    print(enhanced_speech.shape)
+    
+    
+    audio_data, sr = librosa.load(FILE_NAME, sr=None)
+    print(audio_data.shape)
+    # maskappliedaudio = audio_data * enhanced_speech
+    
+    
     file_name = os.path.join(os.path.dirname(FILE_NAME),
                              'enhanced_{}.wav'.format(os.path.basename(FILE_NAME).split('.')[0]))
     wavfile.write(file_name, sample_rate, enhanced_speech.T)

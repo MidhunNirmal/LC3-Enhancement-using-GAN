@@ -181,6 +181,37 @@ def mdct(x, odd=True):
 
 
 
+def mdctconvert(train_clean1,batch):
+                output1 = train_clean1.cpu().detach().numpy()
+                shape = output1.shape
+                # print(shape[0])
+                batch = shape[0]
+                
+                mdct_results = []
+                for i in range(batch):
+                    clean_mdct = mdct(output1[i][0])
+                    # tr1 = tr1.append
+                    # print(output1[i][0].shape)
+                    mdct_results.append(clean_mdct)
+                    # print(clean_mdct.shape)
+                    # print(mdct_results.shape)
+                mdct_array = np.array(mdct_results)
+                reshaped_array = mdct_array.reshape(batch, 1, 8192)
+                outtt = torch.from_numpy(reshaped_array)
+                # print(mdct_array.shape)
+                # print(reshaped_array.shape)
+                # print(output1.shape)
+                # print("train clean",type(train_clean1),outtt.shape)
+                # print("out",type(outtt),outtt.shape)
+                outtt=outtt.to(torch.float32)
+                return outtt
+
+
+
+
+
+
+
 
 
 

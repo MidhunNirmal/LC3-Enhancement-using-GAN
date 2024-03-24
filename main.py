@@ -9,6 +9,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import data_preprocess
+import model1
 import numpy as np
 
 from data_preprocess import sample_rate
@@ -44,10 +45,17 @@ if __name__ == '__main__':
         batch_size, _, signal_length = clean_batch.shape
         total_loss = 0.0
         
+        output1 = clean_batch.cpu().detach().numpy()  # Extract clean audio signal
+        output2 = lossy_batch.cpu().detach().numpy()  # Extract clean audio signal
+        
+        # output1 = train_clean1.cpu().detach().numpy()
+        shape = output1.shape
+        # print(shape[0])
+        batch = shape[0]
+        
+        
         # Compute STFT and RMSE loss for each signal in the batch
-        for i in range(BATCH_SIZE):
-            output1 = clean_batch.cpu().detach().numpy()  # Extract clean audio signal
-            output2 = lossy_batch.cpu().detach().numpy()  # Extract clean audio signal
+        for i in range(batch):
             # lossy_audio = lossy_batch[i, 0, :]  # Extract lossy audio signal
             
             # Compute STFT for clean and lossy signals
@@ -95,13 +103,15 @@ if __name__ == '__main__':
             
             # ---------------------cnvrt signals mdct
             
+            train_noisy_mdct = data_preprocess.mdctconvert(train_noisy,BATCH_SIZE)
+            
 
             # latent vector - normal distribution
             z = nn.init.normal(torch.Tensor(train_batch.size(0), 1024, 8))
             if torch.cuda.is_available():
-                train_batch, train_clean, train_noisy = train_batch.cuda(), train_clean.cuda(), train_noisy.cuda()
+                train_batch, train_clean, train_noisy,train_noisy_mdct= train_batch.cuda(), train_clean.cuda(), train_noisy.cuda(),train_noisy_mdct.cuda()
                 z = z.cuda()
-            train_batch, train_clean, train_noisy = Variable(train_batch), Variable(train_clean), Variable(train_noisy)
+            train_batch, train_clean, train_noisy,train_noisy_mdct = Variable(train_batch), Variable(train_clean), Variable(train_noisy),Variable(train_noisy_mdct)
             z = Variable(z)
 
             # TRAIN D to recognize clean audio as clean
@@ -112,10 +122,17 @@ if __name__ == '__main__':
             clean_loss.backward()
 
             # TRAIN D to recognize generated audio as noisy
-            generated_outputs = generator(train_noisy, z)
+            # train_noisy_mdct = data_preprocess.mdctconvert(train_noisy,BATCH_SIZE)
+            
+            # float_tensor = int_tensor.to(torch.float)
+            generated_outputs = generator(train_noisy_mdct)
+            generated_outputs = generated_outputs*2
             # generated out*noisy ---------------- to be done
             # gen_mdct = data_preprocess.mdct(generated_outputs)
-            outputs = discriminator(torch.cat((generated_outputs, train_noisy), dim=1), ref_batch)
+            maskapplied = train_noisy*generated_outputs
+            print("abcd    ",maskapplied.shape)
+            print("abcd    ",train_noisy_mdct.shape)
+            outputs = discriminator(torch.cat((maskapplied, train_noisy), dim=1), ref_batch)
             noisy_loss = torch.mean(outputs ** 2)  # L2 loss - we want them all to be 0
             noisy_loss.backward()
 
@@ -126,9 +143,11 @@ if __name__ == '__main__':
             # TRAIN G so that D recognizes G(z) as real
             generator.zero_grad()
             output1 = train_noisy.cpu().detach().numpy()
-            generated_outputs = generator(train_noisy, z)
+            generated_outputs = generator(train_noisy_mdct)
+            generated_outputs = generated_outputs*2
+            maskapplied = train_noisy*generated_outputs
             # gen_mdct = data_preprocess.mdct(generated_outputs)
-            gen_noise_pair = torch.cat((generated_outputs, train_noisy), dim=1)
+            gen_noise_pair = torch.cat((maskapplied, train_noisy), dim=1)
             outputs = discriminator(gen_noise_pair, ref_batch)
             # output1 = outputs.cpu().detach().numpy()
             # gen_mdct = data_preprocess.mdct(output1)
@@ -140,7 +159,7 @@ if __name__ == '__main__':
             
             
             
-            mdct_rmse = stft_rmse_loss(generated_outputs, train_clean)
+            mdct_rmse = stft_rmse_loss(maskapplied, train_clean)
 
             # Now mdct_rmse is already a float value representing the loss
             # No need to convert it back to a torch tensor
@@ -164,6 +183,14 @@ if __name__ == '__main__':
             train_bar.set_description(
                 'Epoch {}: d_clean_loss {:.4f}, d_noisy_loss {:.4f}, g_loss {:.4f}, g_conditional_loss '
                     .format(epoch + 1, clean_loss, noisy_loss, g_loss))
+            
+            
+            
+            
+        g_path = os.path.join('epochs', 'generator-{}.pkl'.format(epoch + 1))
+        d_path = os.path.join('epochs', 'discriminator-{}.pkl'.format(epoch + 1))
+        torch.save(generator.state_dict(), g_path)
+        torch.save(discriminator.state_dict(), d_path)
 
         # TEST model
         test_bar = tqdm(test_data_loader, desc='Test model and save generated audios')
@@ -172,7 +199,10 @@ if __name__ == '__main__':
             if torch.cuda.is_available():
                 test_noisy, z = test_noisy.cuda(), z.cuda()
             test_noisy, z = Variable(test_noisy), Variable(z)
-            fake_speech = generator(test_noisy, z).data.cpu().numpy()  # convert to numpy array
+            test_noisy1 = data_preprocess.mdctconvert(test_noisy,50)
+            test_noisy1 = test_noisy1.cuda()
+            test_noisy1 = Variable(test_noisy1)
+            fake_speech = generator(test_noisy1).data.cpu().numpy()  # convert to numpy array
             fake_speech = emphasis(fake_speech, emph_coeff=0.95, pre=False)
 
             for idx in range(fake_speech.shape[0]):
@@ -182,7 +212,4 @@ if __name__ == '__main__':
                 wavfile.write(file_name, sample_rate, generated_sample.T)
 
         # save the model parameters for each epoch
-        g_path = os.path.join('epochs', 'generator-{}.pkl'.format(epoch + 1))
-        d_path = os.path.join('epochs', 'discriminator-{}.pkl'.format(epoch + 1))
-        torch.save(generator.state_dict(), g_path)
-        torch.save(discriminator.state_dict(), d_path)
+       

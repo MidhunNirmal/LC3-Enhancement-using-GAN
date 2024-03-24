@@ -89,6 +89,7 @@ if __name__ == '__main__':
     ref_batch = Variable(ref_batch)
     print("# generator parameters:", sum(param.numel() for param in generator.parameters()))
     print("# discriminator parameters:", sum(param.numel() for param in discriminator.parameters()))
+    print (train_dataset)
     # optimizers
     g_optimizer = optim.RMSprop(generator.parameters(), lr=0.0001)
     d_optimizer = optim.RMSprop(discriminator.parameters(), lr=0.0001)
@@ -97,6 +98,43 @@ if __name__ == '__main__':
     for epoch in range(50):
         train_bar = tqdm(train_data_loader)
         for train_batch, train_clean, train_noisy in train_bar:
+            
+            
+            
+            def mdctconvert(train_clean1):
+                output1 = train_clean1.cpu().detach().numpy()
+                shape1 = output1.shape
+                index1 = shape1[0]
+                print(shape1[0], shape1,type(shape1), output1.shape)
+                print(len(shape1), shape1.index(50), index1)
+                mdct_results = []
+                for i in range(50):
+                    clean_mdct = data_preprocess.mdct(output1[i][0])
+                    # tr1 = tr1.append
+                    # print(output1[i][0].shape)
+                    mdct_results.append(clean_mdct)
+                    # print(clean_mdct.shape)
+                    # print(mdct_results.shape)
+                mdct_array = np.array(mdct_results)
+                reshaped_array = mdct_array.reshape(50, 1, 8192)
+                outtt = torch.from_numpy(reshaped_array)
+                # print(mdct_array.shape)
+                # print(reshaped_array.shape)
+                # print(output1.shape)
+                # print("train clean",type(train_clean1),train_clean1.shape)
+                # print("out",type(outtt),outtt.shape)
+                outtt=outtt.to(torch.float32)
+                return outtt
+                
+                
+                
+            
+            tenzz = mdctconvert(train_noisy)
+            # print("Weight tensor data type:", tenzz.dtype)
+            # print("noisy data type:", train_noisy.dtype)
+            # print("Input tensor data type:", input_tensor.dtype)
+            
+            
             
             train_batch, train_clean, train_noisy = Variable(train_batch), Variable(train_clean), Variable(train_noisy)
             z = Variable(z)
